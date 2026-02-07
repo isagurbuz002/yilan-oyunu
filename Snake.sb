@@ -1,0 +1,175 @@
+' Pencere Ayarları
+GraphicsWindow.BackgroundColor = "White"
+GraphicsWindow.Title = "Pro Yılan Oyunu - Karmaşık Engelli"
+GraphicsWindow.Width = 600
+GraphicsWindow.Height = 450
+
+' Ana Menü Başlat
+AnaMenu:
+GraphicsWindow.Clear()
+GraphicsWindow.BrushColor = "Black"
+GraphicsWindow.FontSize = 30
+GraphicsWindow.DrawText(200, 50, "YILAN OYUNU")
+
+GraphicsWindow.FontSize = 18
+GraphicsWindow.DrawText(150, 150, "Hız Seçin:")
+GraphicsWindow.BrushColor = "Blue"
+btn1 = Controls.AddButton("1 - Yavaş", 150, 200)
+btn2 = Controls.AddButton("2 - Normal", 250, 200)
+btn3 = Controls.AddButton("3 - Hızlı", 350, 200)
+
+hizSecildi = 0
+Controls.ButtonClicked = HizSecimi
+
+While hizSecildi = 0
+  Program.Delay(100)
+EndWhile
+
+' Oyun Kurulumu
+OyunKur:
+GraphicsWindow.Clear()
+GraphicsWindow.BackgroundColor = "White"
+uzunluk = 3
+boyut = 20
+yonX = boyut
+yonY = 0
+yilanX[1] = 100
+yilanY[1] = 100
+
+' --- Karmaşık Engeller Oluştur ---
+' 4 adet rastgele bölgede 3'lü bloklar halinde engeller oluşturur
+GraphicsWindow.BrushColor = "Black"
+engelSayisi = 0
+For e = 1 To 4
+  anaX = Math.Floor(Math.GetRandomNumber(25)) * boyut
+  anaY = Math.Floor(Math.GetRandomNumber(18)) * boyut
+  
+  ' Her ana engel noktasının etrafına 3 parça ekle (Karmaşık yapı için)
+  For j = 1 To 3
+    engelSayisi = engelSayisi + 1
+    ' Rastgele şekil oluşturmak için ofsetler
+    offX = Math.GetRandomNumber(2) - 1 
+    offY = Math.GetRandomNumber(2) - 1
+    
+    eX[engelSayisi] = anaX + (offX * boyut)
+    eY[engelSayisi] = anaY + (offY * boyut)
+    
+    ' Başlangıç noktasına çok yakınsa engeli kaydır
+    If eX[engelSayisi] < 150 And eY[engelSayisi] < 150 Then
+      eX[engelSayisi] = eX[engelSayisi] + 200
+    EndIf
+    
+    Shapes.AddRectangle(boyut, boyut)
+    Shapes.Move(Shapes.AddRectangle(boyut,boyut), eX[engelSayisi], eY[engelSayisi])
+  EndFor
+EndFor
+
+' Yılanı Oluştur
+GraphicsWindow.BrushColor = "DarkGreen"
+For i = 1 To uzunluk
+  yilan[i] = Shapes.AddRectangle(boyut, boyut)
+  yilanX[i] = yilanX[1] - (i-1)*boyut
+  yilanY[i] = yilanY[1]
+  Shapes.Move(yilan[i], yilanX[i], yilanY[i])
+EndFor
+
+' Yem
+GraphicsWindow.BrushColor = "Red"
+yem = Shapes.AddEllipse(boyut, boyut)
+YemYerlestir()
+
+GraphicsWindow.KeyDown = TusBasildi
+
+' --- Ana Oyun Döngüsü ---
+While "True"
+  yeniX = yilanX[1] + yonX
+  yeniY = yilanY[1] + yonY
+  
+  ' 1. Duvar Çarpma Kontrolü
+  If yeniX < 0 Or yeniX >= GraphicsWindow.Width Or yeniY < 0 Or yeniY >= GraphicsWindow.Height Then
+    Goto OyunBitti
+  EndIf
+  
+  ' 2. Kendini Yeme Kontrolü
+  For i = 1 To uzunluk
+    If yeniX = yilanX[i] And yeniY = yilanY[i] Then
+      Goto OyunBitti
+    EndIf
+  EndFor
+  
+  ' 3. Karmaşık Engellere Çarpma Kontrolü
+  For i = 1 To engelSayisi
+    If yeniX = eX[i] And yeniY = eY[i] Then
+      Goto OyunBitti
+    EndIf
+  EndFor
+  
+  ' 4. Yem Yeme Kontrolü
+  If yeniX = yemX And yeniY = yemY Then
+    uzunluk = uzunluk + 1
+    GraphicsWindow.BrushColor = "DarkGreen"
+    yilan[uzunluk] = Shapes.AddRectangle(boyut, boyut)
+    YemYerlestir()
+  EndIf
+  
+  ' Vücudu Hareket Ettir
+  For i = uzunluk To 2 Step -1
+    yilanX[i] = yilanX[i-1]
+    yilanY[i] = yilanY[i-1]
+    Shapes.Move(yilan[i], yilanX[i], yilanY[i])
+  EndFor
+  
+  yilanX[1] = yeniX
+  yilanY[1] = yeniY
+  Shapes.Move(yilan[1], yilanX[1], yilanY[1])
+  
+  Program.Delay(gecikme)
+EndWhile
+
+OyunBitti:
+GraphicsWindow.ShowMessage("Engellere çarptın! Skorun: " + (uzunluk - 3), "OYUN BİTTİ")
+Goto AnaMenu
+
+' --- ALT PROGRAMLAR ---
+Sub HizSecimi
+  sonButon = Controls.LastClickedButton
+  If sonButon = btn1 Then
+    gecikme = 180
+  ElseIf sonButon = btn2 Then
+    gecikme = 100
+  ElseIf sonButon = btn3 Then
+    gecikme = 60
+  EndIf
+  hizSecildi = 1
+EndSub
+
+Sub TusBasildi
+  tus = GraphicsWindow.LastKey
+  If (tus = "Up" Or tus = "W") And yonY = 0 Then
+    yonX = 0
+    yonY = -boyut
+  ElseIf (tus = "Down" Or tus = "S") And yonY = 0 Then
+    yonX = 0
+    yonY = boyut
+  ElseIf (tus = "Left" Or tus = "A") And yonX = 0 Then
+    yonX = -boyut
+    yonY = 0
+  ElseIf (tus = "Right" Or tus = "D") And yonX = 0 Then
+    yonX = boyut
+    yonY = 0
+  EndIf
+EndSub
+
+Sub YemYerlestir
+  yemX = Math.Floor(Math.GetRandomNumber(GraphicsWindow.Width / boyut) - 1) * boyut
+  yemY = Math.Floor(Math.GetRandomNumber(GraphicsWindow.Height / boyut) - 1) * boyut
+  
+  ' Yemin engelin içinde doğmadığından emin ol
+  For i = 1 To engelSayisi
+    If yemX = eX[i] And yemY = eY[i] Then
+      YemYerlestir()
+    EndIf
+  EndFor
+  
+  Shapes.Move(yem, yemX, yemY)
+EndSub
